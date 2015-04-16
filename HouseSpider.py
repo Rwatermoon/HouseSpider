@@ -49,7 +49,7 @@ def crawlChildurl(url,ParantDir):
 
 def crawl(url,rootDir):
     headers = {
-            'User-Agent':'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.6) Gecko/20091201 Firefox/3.5.6'
+           'User-Agent':'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.6) Gecko/20091201 Firefox/3.5.6'
         }
     req = urllib2.Request(url,headers=headers)
     content = urllib2.urlopen(req).read()
@@ -58,26 +58,49 @@ def crawl(url,rootDir):
 
     houseList = content.find_all('div',attrs={"class":"list rel"})
     for item in houseList:
-
+       fieldList=[]
        soup=BeautifulSoup(str(item),"html5lib",from_encoding='utf8')
        print soup.find('span',attrs={'class':'price'}).string
-       fieldList=[]
+       fieldList.append(soup.find('span',attrs={'class':'price'}).string)
+       print soup.find('div',attrs={'class':'info rel floatl ml15'}).dd
        for child in soup.find('dt'):
            print child.string
            fieldList.append(child.string)
-       mkdir(rootDir+"/"+fieldList[0].encode('utf-8'))
-
        print soup.find('span',attrs={'class':'shequName'}).a.string
+       fieldList.append(soup.find('span',attrs={'class':'shequName'}).a.string)
        linkList=soup.find_all('a',attrs={"class":"number"})
        print linkList[1]['href']
        for child in soup.find_all('a',attrs={"class":"number"}):
            print child.string
            print child['href']
+       dirPath=rootDir+"/"+fieldList[1].encode('utf-8')
+       mkdir(dirPath)
+
+       file_object = open(dirPath+"/"+fieldList[1].encode('utf-8')+".txt",'w')
+       for field in fieldList:
+           file_object.write(field.encode('utf-8'))
+           file_object.write(',')
+       file_object.close()
+
+
+
+
 
     return houseList
 if __name__ == '__main__':
     url="http://esf.sz.fang.com/housing/"
     rootDir="/Users/rwatermoon/Documents/houseData/"+str(datetime.date.today())
     mkdir(rootDir)
-    # crawl(url,rootDir)
-    crawlChildurl("http://zu.sz.fang.com/house-xm2810027780/","")
+    crawl(url,rootDir)
+    # crawlChildurl("http://zu.sz.fang.com/house-xm2810027780/","")
+
+
+
+
+
+
+
+
+
+
+
