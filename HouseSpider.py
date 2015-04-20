@@ -53,29 +53,75 @@ def getInfo(url):
     content = unzip(content)
     content = BeautifulSoup(content,"html5lib",from_encoding='gb18030')
     rentlist=content.find_all('dd',attrs={"class":"info rel floatr"})
+    if rentlist==None:return False
     resultLines=[]
     for item in rentlist:
         fieldList=[]
         strLine=""
         soup=BeautifulSoup(str(item),"html5lib",from_encoding='utf8')
-        print soup.find('span',attrs={"class":"price"}).string
-        fieldList.append(str(soup.find('span',attrs={"class":"price"}).string).strip())
-        print soup.find('p',attrs={"class":"alignR mt8"}).string
-        t=soup.find('p',attrs={"class":"alignR mt8"}).string
-        fieldList.append(str(soup.find('p',attrs={"class":"alignR mt8"}).string).strip())
-        data=soup.find('p',attrs={"class":"gray6 mt10"}).string
-        #pattern=re.compile(u"[\u4e00-\u9fa5_0-9]+")
-        pattern=re.compile('/(?<=>).*?(?=<)/')
-        result=pattern.findall(unicode(data))
-        for datafiled in result:
-            print(datafiled)
-            fieldList.append(str(datafiled).strip())
+        if soup==None:continue
+        if soup.find('span',attrs={"class":"price"})==None:fieldList.append("None")
+        else:fieldList.append(str(soup.find('span',attrs={"class":"price"}).get_text()))
+        if soup.find('p',attrs={"class":"alignR mt8"})==None:fieldList.append("None")
+        else:fieldList.append(str(soup.find('p',attrs={"class":"alignR mt8"}).get_text()))
+        if soup.find('p',attrs={"class":"gray6 mt10"})==None:
+            fieldList.append("None")
+        else:
+            data=soup.find('p',attrs={"class":"gray6 mt10"})#.get_text()
+            #pattern=re.compile(u"[\u4e00-\u9fa5_0-9]+")
+            pattern=re.compile('(?<=>).*?(?=<)')
+            result=pattern.findall(unicode(data).replace('\n','').replace('\r',''))
+            result=[item for item in result if item!=u'|']
+            fieldList+=result
+        fieldList=[item.strip() for item in fieldList]
 
         for filed in fieldList:
             strLine+=filed+','
         resultLines.append(strLine)
     return resultLines
+def getcell(url):
+    headers = {
+        'User-Agent':'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.6) Gecko/20091201 Firefox/3.5.6'
+    }
+    req = urllib2.Request(url,headers=headers)
+    content = urllib2.urlopen(req).read()
+    content = unzip(content)
+    content = BeautifulSoup(content,"html5lib",from_encoding='gb18030')
+    houseList = content.find_all('div',attrs={"class":"list rel"})
+    if houseList==None:
+        return False
 
+    for item in houseList:
+        fieldList=[]
+        soup=BeautifulSoup(str(item),"html5lib",from_encoding='utf8')
+        if soup==None:continue
+        if soup.find('span',attrs={'class':'price'})==None:continue
+        fieldList.append(soup.find('span',attrs={'class':'price'}).string)
+        if soup.find('dt')==None:continue
+        for child in soup.find('dt'):
+            if child.string==None:
+                fieldList.append("None")
+            else:fieldList.append(child.string)
+        if soup.find('span',attrs={'class':'shequName'}).a==None:continue
+        fieldList.append(soup.find('span',attrs={'class':'shequName'}).a.string)
+
+        if  soup.find_all('a',attrs={"class":"number"})==None:continue
+        for child in soup.find_all('a',attrs={"class":"number"}):
+            if child.string==None:fieldList.append("None")
+            else:fieldList.append(child.string)
+            if child['href']==None:fieldList.append("None")
+            else:fieldList.append(child['href'])
+
+        dirPath=rootDir+"/"+fieldList[1].encode('gbk')
+        mkdir(dirPath)
+        outPath=dirPath+r"/"+fieldList[1].encode('gbk')+".txt"
+        file_object = open(outPath,'w')
+        for field in fieldList:
+            file_object.write(field.encode("gbk"))
+            file_object.write(',')
+        file_object.close()
+        crawlChildurl(fieldList[7],dirPath)
+    return True
 def crawlChildurl(url,ParantDir):
     headers = {
             'User-Agent':'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.6) Gecko/20091201 Firefox/3.5.6'
@@ -84,14 +130,15 @@ def crawlChildurl(url,ParantDir):
     content = urllib2.urlopen(req).read()
     content = unzip(content)
     content = BeautifulSoup(content,"html5lib",from_encoding='gb18030')
+    if content.find('div',attrs={"class":"fanye gray6"}).span==None:return False
     pageNum=content.find('div',attrs={"class":"fanye gray6"}).span.string
     Num=int(re.sub("\D", "", pageNum))
     for index in range(1,Num+1):
-        # time.sleep(5)
-        outputData=[]
+        time.sleep(5)
+        # outputData=[]
         outputData=(getInfo(url+"/i3"+str(index)+"/"))
         outputData=[line+'\n' for line in  outputData]
-        outPath=ParantDir+'/'+'Page'+str(index)+""
+        outPath=ParantDir+'\\'+'Page'+str(index)+""
         writefile(outPath,outputData)
     return True
         # rentlist=content.find_all('dd',attrs={"class":"info rel floatr"})
@@ -115,44 +162,22 @@ def crawl(url,rootDir):
     content = urllib2.urlopen(req).read()
     content = unzip(content)
     content = BeautifulSoup(content,"html5lib",from_encoding='gb18030')
+    if content.find('div',attrs={"class":"fanye gray6"}).span==None:return False
+    pageNum=content.find('div',attrs={"class":"fanye gray6"}).span.string
+    Num=int(re.sub("\D", "", pageNum))
+    for i in range(3,Num+1):
+        time.sleep(3)
+        nexturl=url+"__0_0_0_0_"+str(i)+"_0_0/"
+        print nexturl
+        getcell(nexturl)
 
-    houseList = content.find_all('div',attrs={"class":"list rel"})
-    for item in houseList:
-       fieldList=[]
-       soup=BeautifulSoup(str(item),"html5lib",from_encoding='utf8')
-       print soup.find('span',attrs={'class':'price'}).string
-       fieldList.append(soup.find('span',attrs={'class':'price'}).string)
-       print soup.find('div',attrs={'class':'info rel floatl ml15'}).dd
-       for child in soup.find('dt'):
-           print child.string
-           fieldList.append(child.string)
-       print soup.find('span',attrs={'class':'shequName'}).a.string
-       fieldList.append(soup.find('span',attrs={'class':'shequName'}).a.string)
-       linkList=soup.find_all('a',attrs={"class":"number"})
-       print linkList[1]['href']
-       for child in soup.find_all('a',attrs={"class":"number"}):
-           print child.string
-           print child['href']
-       dirPath=rootDir+"/"+fieldList[1].encode('utf-8')
-       mkdir(dirPath)
-
-       file_object = open(dirPath+"/"+fieldList[1].encode('utf-8')+".txt",'w')
-       for field in fieldList:
-           file_object.write(field.encode('utf-8'))
-           file_object.write(',')
-       file_object.close()
-
-
-
-
-
-    return houseList
+    return True
 if __name__ == '__main__':
     url="http://esf.sz.fang.com/housing/"
-    rootDir="/Users/rwatermoon/Documents/houseData/"+str(datetime.date.today())
+    rootDir="F:\\houseData\\"+str(datetime.date.today())
     mkdir(rootDir)
-    # crawl(url,rootDir)
-    crawlChildurl("http://zu.tj.fang.com/house-xm1110039333/","/Users/rwatermoon/Documents/houseData/2015-04-18")
+    crawl(url,rootDir)
+    # crawlChildurl("http://zu.tj.fang.com/house-xm1110039333/",rootDir)
 
 
 
