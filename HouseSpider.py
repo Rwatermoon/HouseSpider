@@ -195,7 +195,7 @@ def crawl(url,rootDir):
 
     return True
 if __name__ == '__main__':
-    area=["bj","gz","sh","sz"]
+    area=["bj","tj","gz","sh","sz","qd"]
     for city in area:
         if city=='bj':url="http://esf.fang.com/housing/"
         else:url="http://esf."+city+".fang.com/housing/"
